@@ -1,7 +1,7 @@
 # Bitácora de uso de IA
 
 Proyecto: Sistema Automatizado de Documentación de Código (JSDoc) con IA
-Estudiante: Jhoan [apellido]
+Estudiante: Jhoan rifaldo
 Funcionalidad: HU-01 Documentar un bloque de código con JSDoc (`documentarCodigo`)
 Asistente usado: Claude (Anthropic), modo chat/agente
 
