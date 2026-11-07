@@ -1,0 +1,14 @@
+{
+  "name": "jsdoc-ia",
+  "version": "0.1.0",
+  "description": "Sistema automatizado de documentación de código (JSDoc) con IA",
+  "main": "src/documentador.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "Jhoan",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
