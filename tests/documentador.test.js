@@ -98,3 +98,12 @@ describe('documentarCodigo — casos de error', () => {
     await expect(documentarCodigo(CODIGO_SUMAR, cliente)).rejects.toThrow('La IA no devolvió documentación JSDoc');
   });
 });
+
+describe('documentarCodigo — revisión de seguridad semana 6', () => {
+  test('lanza TypeError claro si el cliente de IA no tiene el método generar', async () => {
+    await expect(documentarCodigo(CODIGO_SUMAR, undefined)).rejects.toThrow(
+      'El cliente de IA debe tener un método generar(prompt)'
+    );
+    await expect(documentarCodigo(CODIGO_SUMAR, { generar: 'no es función' })).rejects.toThrow(TypeError);
+  });
+});

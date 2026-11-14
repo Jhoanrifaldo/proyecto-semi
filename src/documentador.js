@@ -30,6 +30,17 @@ function validarCodigo(codigo) {
 }
 
 /**
+ * Comprueba que el cliente de IA tenga un método `generar(prompt)`.
+ * @param {*} clienteIA Valor recibido como cliente de IA.
+ * @throws {TypeError} Si no es un objeto con el método `generar`.
+ */
+function validarClienteIA(clienteIA) {
+  if (!clienteIA || typeof clienteIA.generar !== 'function') {
+    throw new TypeError('El cliente de IA debe tener un método generar(prompt)');
+  }
+}
+
+/**
  * Arma el prompt que se envía a la IA.
  * @param {string} codigo Código a documentar.
  * @returns {string} Instrucción fija seguida del código.
@@ -57,6 +68,7 @@ function limpiarRespuesta(respuesta) {
  */
 async function documentarCodigo(codigo, clienteIA) {
   validarCodigo(codigo);
+  validarClienteIA(clienteIA);
 
   const respuesta = await clienteIA.generar(construirPrompt(codigo));
   const documentado = limpiarRespuesta(respuesta);
