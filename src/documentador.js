@@ -1,6 +1,9 @@
 /** Cantidad máxima de caracteres que se aceptan para documentar. */
 const MAX_CARACTERES = 10000;
 
+/** Tiempo máximo (ms) que se espera la respuesta de la IA antes de abandonar. */
+const TIEMPO_MAXIMO_MS = 30000;
+
 /** Instrucción fija (prompt estricto) que se envía a la IA antes del código. */
 const INSTRUCCION_JSDOC =
   'Eres un generador de documentación. Analiza el siguiente código y agrega ' +
@@ -62,18 +65,40 @@ function construirPrompt(codigo) {
 }
 
 /**
- * Pide la respuesta a la IA. Si el cliente falla, lanza un error genérico
- * para no mostrar al usuario detalles internos (URL, clave, cuerpo HTTP).
- * El error original queda en `error.cause` para depurar.
+ * Rechaza la promesa si no se resuelve antes de `milisegundos`.
+ * @param {Promise<*>} promesa Promesa a vigilar.
+ * @param {number} milisegundos Tiempo máximo de espera.
+ * @returns {Promise<*>} El valor de `promesa` si llega a tiempo.
+ * @throws {Error} «La IA tardó más de N ms en responder» si se agota el tiempo.
+ */
+function conTiempoLimite(promesa, milisegundos) {
+  let temporizador;
+  const tiempoAgotado = new Promise((_resolver, rechazar) => {
+    temporizador = setTimeout(
+      () => rechazar(new Error(`La IA tardó más de ${milisegundos} ms en responder`)),
+      milisegundos
+    );
+  });
+  return Promise.race([promesa, tiempoAgotado]).finally(() => clearTimeout(temporizador));
+}
+
+/**
+ * Pide la respuesta a la IA con tiempo límite. Si el cliente falla, lanza un
+ * error genérico para no mostrar al usuario detalles internos (URL, clave,
+ * cuerpo HTTP). El error original queda en `error.cause` para depurar.
  * @param {{ generar: (prompt: string) => Promise<string> }} clienteIA Cliente de IA.
  * @param {string} prompt Prompt completo.
+ * @param {number} tiempoMaximoMs Tiempo máximo de espera en milisegundos.
  * @returns {Promise<*>} Lo que devuelva `clienteIA.generar`.
- * @throws {Error} «No se pudo obtener respuesta de la IA» si el cliente falla.
+ * @throws {Error} Si el cliente falla o se agota el tiempo.
  */
-async function pedirRespuestaIA(clienteIA, prompt) {
+async function pedirRespuestaIA(clienteIA, prompt, tiempoMaximoMs) {
   try {
-    return await clienteIA.generar(prompt);
+    return await conTiempoLimite(clienteIA.generar(prompt), tiempoMaximoMs);
   } catch (error) {
+    if (error.message.startsWith('La IA tardó más de')) {
+      throw error;
+    }
     throw new Error('No se pudo obtener respuesta de la IA', { cause: error });
   }
 }
@@ -102,15 +127,19 @@ function limpiarRespuesta(respuesta) {
  * Documenta un bloque de código con JSDoc usando un cliente de IA.
  * @param {string} codigo Bloque de código JavaScript a documentar.
  * @param {{ generar: (prompt: string) => Promise<string> }} clienteIA Cliente de IA.
+ * @param {{ tiempoMaximoMs?: number }} [opciones] Opciones. `tiempoMaximoMs`
+ *        (por defecto TIEMPO_MAXIMO_MS = 30000) limita la espera de la IA.
  * @returns {Promise<string>} El código documentado con JSDoc, sin texto extra.
- * @throws {TypeError} Si `codigo` no es string.
- * @throws {Error} Si `codigo` está vacío, es muy largo o la IA no devuelve JSDoc.
+ * @throws {TypeError} Si `codigo` no es string o `clienteIA` no tiene `generar`.
+ * @throws {Error} Si `codigo` está vacío, es muy largo o contiene las marcas del
+ *         prompt; si la IA falla, tarda demasiado, responde vacío o sin JSDoc.
  */
-async function documentarCodigo(codigo, clienteIA) {
+async function documentarCodigo(codigo, clienteIA, opciones = {}) {
+  const { tiempoMaximoMs = TIEMPO_MAXIMO_MS } = opciones;
   validarCodigo(codigo);
   validarClienteIA(clienteIA);
 
-  const respuesta = await pedirRespuestaIA(clienteIA, construirPrompt(codigo));
+  const respuesta = await pedirRespuestaIA(clienteIA, construirPrompt(codigo), tiempoMaximoMs);
   validarRespuesta(respuesta);
   const documentado = limpiarRespuesta(respuesta);
 
@@ -120,4 +149,4 @@ async function documentarCodigo(codigo, clienteIA) {
   return documentado;
 }
 
-module.exports = { documentarCodigo, MAX_CARACTERES };
+module.exports = { documentarCodigo, MAX_CARACTERES, TIEMPO_MAXIMO_MS };

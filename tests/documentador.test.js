@@ -158,4 +158,12 @@ describe('documentarCodigo — revisión de seguridad semana 6', () => {
     await expect(promesa).rejects.not.toThrow(/CLAVE_SECRETA_123/);
     await expect(promesa).rejects.toHaveProperty('cause', errorInterno);
   });
+
+  test('abandona con error si la IA no responde dentro del tiempo límite', async () => {
+    const clienteColgado = { generar: () => new Promise(() => {}) };
+
+    await expect(
+      documentarCodigo(CODIGO_SUMAR, clienteColgado, { tiempoMaximoMs: 20 })
+    ).rejects.toThrow('La IA tardó más de 20 ms en responder');
+  });
 });
