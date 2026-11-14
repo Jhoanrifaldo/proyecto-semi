@@ -106,4 +106,13 @@ describe('documentarCodigo — revisión de seguridad semana 6', () => {
     );
     await expect(documentarCodigo(CODIGO_SUMAR, { generar: 'no es función' })).rejects.toThrow(TypeError);
   });
+
+  test('lanza error claro si la IA devuelve algo que no es texto o está vacío', async () => {
+    await expect(documentarCodigo(CODIGO_SUMAR, crearClienteFalso(undefined))).rejects.toThrow(
+      'La IA devolvió una respuesta vacía o inválida'
+    );
+    await expect(documentarCodigo(CODIGO_SUMAR, crearClienteFalso('   '))).rejects.toThrow(
+      'La IA devolvió una respuesta vacía o inválida'
+    );
+  });
 });

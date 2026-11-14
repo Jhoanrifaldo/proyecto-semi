@@ -50,6 +50,17 @@ function construirPrompt(codigo) {
 }
 
 /**
+ * Comprueba que la IA haya devuelto un texto no vacío.
+ * @param {*} respuesta Valor devuelto por `clienteIA.generar`.
+ * @throws {Error} Si la respuesta no es un string o está vacía.
+ */
+function validarRespuesta(respuesta) {
+  if (typeof respuesta !== 'string' || respuesta.trim().length === 0) {
+    throw new Error('La IA devolvió una respuesta vacía o inválida');
+  }
+}
+
+/**
  * Quita espacios sobrantes y las cercas de Markdown que a veces agrega la IA.
  * @param {string} respuesta Texto devuelto por la IA.
  * @returns {string} Respuesta limpia.
@@ -71,6 +82,7 @@ async function documentarCodigo(codigo, clienteIA) {
   validarClienteIA(clienteIA);
 
   const respuesta = await clienteIA.generar(construirPrompt(codigo));
+  validarRespuesta(respuesta);
   const documentado = limpiarRespuesta(respuesta);
 
   if (!documentado.includes('/**')) {
