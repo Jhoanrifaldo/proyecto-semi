@@ -7,9 +7,12 @@ const INSTRUCCION_JSDOC =
   'comentarios técnicos usando el estándar JSDoc (@param, @returns). ' +
   'Devuelve únicamente el código documentado, sin explicaciones ni texto extra.';
 
-/** Cerca de Markdown al inicio (``` o ```js / ```javascript) y al final. */
-const CERCA_INICIO = /^```\w*\n/;
-const CERCA_FIN = /\n```$/;
+/**
+ * Cerca de Markdown al inicio (``` , ```js, ```javascript, con espacios
+ * opcionales) y al final. Aceptan saltos de línea de Unix (\n) y Windows (\r\n).
+ */
+const CERCA_INICIO = /^```[\w-]*[ \t]*\r?\n/;
+const CERCA_FIN = /\r?\n```$/;
 
 /**
  * Comprueba que el código sea un texto no vacío y dentro del límite.

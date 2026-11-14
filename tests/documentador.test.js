@@ -115,4 +115,12 @@ describe('documentarCodigo — revisión de seguridad semana 6', () => {
       'La IA devolvió una respuesta vacía o inválida'
     );
   });
+
+  test('quita las cercas de Markdown aunque la IA use saltos de línea de Windows (\\r\\n)', async () => {
+    const cliente = crearClienteFalso('```js\r\n' + SUMAR_DOCUMENTADO + '\r\n```');
+
+    const resultado = await documentarCodigo(CODIGO_SUMAR, cliente);
+
+    expect(resultado).toBe(SUMAR_DOCUMENTADO);
+  });
 });
