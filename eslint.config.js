@@ -6,7 +6,8 @@ const security = require('eslint-plugin-security');
 const globals = require('globals');
 
 module.exports = [
-  { ignores: ['node_modules/', 'coverage/'] },
+  // ejemplos/ son archivos de entrada para documentar, no código del proyecto.
+  { ignores: ['node_modules/', 'coverage/', 'ejemplos/'] },
   js.configs.recommended,
   security.configs.recommended,
   {

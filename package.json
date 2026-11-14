@@ -5,7 +5,9 @@
   "main": "src/documentador.js",
   "scripts": {
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "documentar": "node src/cli.js",
+    "demo": "node src/cli.js ejemplos/sumar.js --demo"
   },
   "author": "Jhoan",
   "license": "MIT",
@@ -18,5 +20,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "bin": {
+    "jsdoc-ia": "src/cli.js"
   }
 }
