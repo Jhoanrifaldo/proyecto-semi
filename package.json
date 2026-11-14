@@ -4,11 +4,19 @@
   "description": "Sistema automatizado de documentación de código (JSDoc) con IA",
   "main": "src/documentador.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint ."
   },
   "author": "Jhoan",
   "license": "MIT",
   "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "eslint-plugin-security": "4.2.1",
+    "globals": "17.14.0",
     "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
