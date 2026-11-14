@@ -62,6 +62,23 @@ function construirPrompt(codigo) {
 }
 
 /**
+ * Pide la respuesta a la IA. Si el cliente falla, lanza un error genérico
+ * para no mostrar al usuario detalles internos (URL, clave, cuerpo HTTP).
+ * El error original queda en `error.cause` para depurar.
+ * @param {{ generar: (prompt: string) => Promise<string> }} clienteIA Cliente de IA.
+ * @param {string} prompt Prompt completo.
+ * @returns {Promise<*>} Lo que devuelva `clienteIA.generar`.
+ * @throws {Error} «No se pudo obtener respuesta de la IA» si el cliente falla.
+ */
+async function pedirRespuestaIA(clienteIA, prompt) {
+  try {
+    return await clienteIA.generar(prompt);
+  } catch (error) {
+    throw new Error('No se pudo obtener respuesta de la IA', { cause: error });
+  }
+}
+
+/**
  * Comprueba que la IA haya devuelto un texto no vacío.
  * @param {*} respuesta Valor devuelto por `clienteIA.generar`.
  * @throws {Error} Si la respuesta no es un string o está vacía.
@@ -93,7 +110,7 @@ async function documentarCodigo(codigo, clienteIA) {
   validarCodigo(codigo);
   validarClienteIA(clienteIA);
 
-  const respuesta = await clienteIA.generar(construirPrompt(codigo));
+  const respuesta = await pedirRespuestaIA(clienteIA, construirPrompt(codigo));
   validarRespuesta(respuesta);
   const documentado = limpiarRespuesta(respuesta);
 

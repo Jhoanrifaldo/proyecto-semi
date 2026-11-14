@@ -147,4 +147,15 @@ describe('documentarCodigo — revisión de seguridad semana 6', () => {
     );
     expect(cliente.prompts).toHaveLength(0);
   });
+
+  test('si el cliente de IA falla, no expone su mensaje interno (p. ej. una clave en la URL)', async () => {
+    const errorInterno = new Error('fetch failed: https://api.ejemplo/v1?key=CLAVE_SECRETA_123');
+    const cliente = { generar: async () => { throw errorInterno; } };
+
+    const promesa = documentarCodigo(CODIGO_SUMAR, cliente);
+
+    await expect(promesa).rejects.toThrow('No se pudo obtener respuesta de la IA');
+    await expect(promesa).rejects.not.toThrow(/CLAVE_SECRETA_123/);
+    await expect(promesa).rejects.toHaveProperty('cause', errorInterno);
+  });
 });
