@@ -16,12 +16,24 @@ const INSTRUCCION_JSDOC =
 const MARCA_INICIO = '<<<INICIO_CODIGO>>>';
 const MARCA_FIN = '<<<FIN_CODIGO>>>';
 
+/** Inicio de un bloque JSDoc; la respuesta de la IA debe contener al menos uno. */
+const INICIO_JSDOC = '/**';
+
 /**
  * Cerca de Markdown al inicio (``` , ```js, ```javascript, con espacios
  * opcionales) y al final. Aceptan saltos de línea de Unix (\n) y Windows (\r\n).
  */
 const CERCA_INICIO = /^```[\w-]*[ \t]*\r?\n/;
 const CERCA_FIN = /\r?\n```$/;
+
+/** Error que indica que la IA no respondió dentro del tiempo límite. */
+class TiempoAgotadoError extends Error {
+  /** @param {number} milisegundos Tiempo límite que se superó. */
+  constructor(milisegundos) {
+    super(`La IA tardó más de ${milisegundos} ms en responder`);
+    this.name = 'TiempoAgotadoError';
+  }
+}
 
 /**
  * Comprueba que el código sea un texto no vacío y dentro del límite.
@@ -69,13 +81,13 @@ function construirPrompt(codigo) {
  * @param {Promise<*>} promesa Promesa a vigilar.
  * @param {number} milisegundos Tiempo máximo de espera.
  * @returns {Promise<*>} El valor de `promesa` si llega a tiempo.
- * @throws {Error} «La IA tardó más de N ms en responder» si se agota el tiempo.
+ * @throws {TiempoAgotadoError} Si se agota el tiempo.
  */
 function conTiempoLimite(promesa, milisegundos) {
   let temporizador;
   const tiempoAgotado = new Promise((_resolver, rechazar) => {
     temporizador = setTimeout(
-      () => rechazar(new Error(`La IA tardó más de ${milisegundos} ms en responder`)),
+      () => rechazar(new TiempoAgotadoError(milisegundos)),
       milisegundos
     );
   });
@@ -90,13 +102,14 @@ function conTiempoLimite(promesa, milisegundos) {
  * @param {string} prompt Prompt completo.
  * @param {number} tiempoMaximoMs Tiempo máximo de espera en milisegundos.
  * @returns {Promise<*>} Lo que devuelva `clienteIA.generar`.
- * @throws {Error} Si el cliente falla o se agota el tiempo.
+ * @throws {TiempoAgotadoError} Si se agota el tiempo.
+ * @throws {Error} «No se pudo obtener respuesta de la IA» si el cliente falla.
  */
 async function pedirRespuestaIA(clienteIA, prompt, tiempoMaximoMs) {
   try {
     return await conTiempoLimite(clienteIA.generar(prompt), tiempoMaximoMs);
   } catch (error) {
-    if (error.message.startsWith('La IA tardó más de')) {
+    if (error instanceof TiempoAgotadoError) {
       throw error;
     }
     throw new Error('No se pudo obtener respuesta de la IA', { cause: error });
@@ -124,6 +137,17 @@ function limpiarRespuesta(respuesta) {
 }
 
 /**
+ * Comprueba que el texto limpio tenga al menos un bloque JSDoc.
+ * @param {string} documentado Respuesta ya limpia.
+ * @throws {Error} «La IA no devolvió documentación JSDoc» si no hay `/**`.
+ */
+function validarJSDoc(documentado) {
+  if (!documentado.includes(INICIO_JSDOC)) {
+    throw new Error('La IA no devolvió documentación JSDoc');
+  }
+}
+
+/**
  * Documenta un bloque de código con JSDoc usando un cliente de IA.
  * @param {string} codigo Bloque de código JavaScript a documentar.
  * @param {{ generar: (prompt: string) => Promise<string> }} clienteIA Cliente de IA.
@@ -132,7 +156,11 @@ function limpiarRespuesta(respuesta) {
  * @returns {Promise<string>} El código documentado con JSDoc, sin texto extra.
  * @throws {TypeError} Si `codigo` no es string o `clienteIA` no tiene `generar`.
  * @throws {Error} Si `codigo` está vacío, es muy largo o contiene las marcas del
- *         prompt; si la IA falla, tarda demasiado, responde vacío o sin JSDoc.
+ *         prompt; si la IA falla, responde vacío o sin JSDoc.
+ * @throws {TiempoAgotadoError} Si la IA no responde dentro de `tiempoMaximoMs`.
+ * @example
+ * const doc = await documentarCodigo('function sumar(a, b) { return a + b; }', clienteGemini);
+ * // doc === '/**\n * Suma dos números.\n * @param {number} a ...\n *\/\nfunction sumar(a, b) { ... }'
  */
 async function documentarCodigo(codigo, clienteIA, opciones = {}) {
   const { tiempoMaximoMs = TIEMPO_MAXIMO_MS } = opciones;
@@ -142,11 +170,8 @@ async function documentarCodigo(codigo, clienteIA, opciones = {}) {
   const respuesta = await pedirRespuestaIA(clienteIA, construirPrompt(codigo), tiempoMaximoMs);
   validarRespuesta(respuesta);
   const documentado = limpiarRespuesta(respuesta);
-
-  if (!documentado.includes('/**')) {
-    throw new Error('La IA no devolvió documentación JSDoc');
-  }
+  validarJSDoc(documentado);
   return documentado;
 }
 
-module.exports = { documentarCodigo, MAX_CARACTERES, TIEMPO_MAXIMO_MS };
+module.exports = { documentarCodigo, TiempoAgotadoError, MAX_CARACTERES, TIEMPO_MAXIMO_MS };
